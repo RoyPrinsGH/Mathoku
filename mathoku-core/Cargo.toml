@@ -3,4 +3,8 @@ name = "mathoku-core"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+# cdylib enables .so output for the Kotlin wrapper
+crate-type = ["cdylib"]
+
 [dependencies]
