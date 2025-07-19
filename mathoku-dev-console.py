@@ -167,7 +167,7 @@ def build_mathoku_core(profile: str):
         return
 
     for target in ANDROID_TARGETS_OF_INTEREST:
-        cmd = base_cmd + ["-t", target] + build_cmd_suffix
+        cmd = base_cmd + ["-t", target, "-o", f"../kotlin-rust-wrapper/src/main/jniLibs/{target}"] + build_cmd_suffix
         try:
             # The 'run' helper doesn't support 'cwd', so we use subprocess directly
             print(">>", " ".join(map(str, cmd)), f"(in {core_path})", flush=True)
