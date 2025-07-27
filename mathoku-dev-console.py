@@ -98,6 +98,12 @@ def main():
 
     return run_mathoku_dev_console(passthrough)
 
+ANDROID_RUSTUP_TARGETS: List[str] = [
+    "aarch64-linux-android",
+    "armv7-linux-androideabi",
+    "x86_64-linux-android",
+]
+
 ANDROID_TARGETS: List[str] = [
     "arm64-v8a", "armeabi-v7a", "x86_64"
 ]
@@ -211,7 +217,7 @@ class RustupAndroidTargetsComponent(EnvComponent):
     def set_up(self) -> bool:
         print("Setting up Rustup Android targets...")
         try:
-            run(["rustup", "target", "add"] + ANDROID_TARGETS)
+            run(["rustup", "target", "add"] + ANDROID_RUSTUP_TARGETS)
             print("Rustup Android targets set up successfully.")
             return True
         except subprocess.CalledProcessError as e:
@@ -228,7 +234,7 @@ class RustupAndroidTargetsComponent(EnvComponent):
 
         success = True
 
-        for target in ANDROID_TARGETS:
+        for target in ANDROID_RUSTUP_TARGETS:
             if target not in installed_targets:
                 print(f"Target {target} is not installed.")
                 success = False
