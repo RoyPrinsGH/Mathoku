@@ -77,10 +77,10 @@ def main():
 
     return real_main(passthrough)
 
-ANDROID_TARGETS_OF_INTEREST: Tuple[str, ...] = (
-    "aarch64-linux-android",
-    "armv7-linux-androideabi",
-    "x86_64-linux-android",
+ANDROID_TARGETS_OF_INTEREST: Tuple[Tuple[str, str], ...] = (
+    ("aarch64-linux-android", "arm64-v8a"),
+    ("armv7-linux-androideabi", "armeabi-v7a"),
+    ("x86_64-linux-android", "x86_64"),
 )
 
 def get_android_target_installation_statuses():
@@ -93,13 +93,13 @@ def get_android_target_installation_statuses():
             ["rustup", "target", "list", "--installed"],
             text=True
         )
-        installed = {line.strip() for line in out.splitlines() if line.strip()}
+        installed_targets = {line.strip() for line in out.splitlines() if line.strip()}
     except Exception as e:
         # Graceful fallback: report all as missing
         print(f"[warn] Could not query rustup targets ({e}); treating all as missing.")
-        installed = set()
+        installed_targets = set()
 
-    return [(t, t in installed) for t in ANDROID_TARGETS_OF_INTEREST]
+    return [((target, jni_target), target in installed_targets) for (target, jni_target) in ANDROID_TARGETS_OF_INTEREST]
 
 def validate_environment():
     statuses = get_android_target_installation_statuses()
@@ -109,19 +109,50 @@ def validate_environment():
     else:
         print("\n❌ Environment validation failed.")
     print("Android targets:")
-    for triple, ok in statuses:
+    for (triple, _), ok in statuses:
         mark = "✓" if ok else "✗"
         print(f"  {mark} {triple}")
     if not all_ok:
-        missing = [t for t, ok in statuses if not ok]
+        missing = [target for (target, _), ok in statuses if not ok]
         print("\nInstall missing with:\n  rustup target add " + " ".join(missing))
+
+    android_home = os.environ.get("ANDROID_HOME")
+    android_home_ok = android_home is not None and Path(android_home).is_dir()
+
+    # Print ANDROID_HOME status
+    print("Environment variables:")
+    mark_android = "✓" if android_home_ok else "✗"
+    if android_home_ok:
+        print(f"  {mark_android} ANDROID_HOME is set to: {android_home}")
+    else:
+        if android_home:
+            print(f"  {mark_android} ANDROID_HOME is set, but the path '{android_home}' does not exist or is not a directory.")
+        else:
+            print(f"  {mark_android} ANDROID_HOME is not set.")
+        print("\n  Please install the Android 7 SDK and set the ANDROID_HOME environment variable to point to your Android SDK location.")
+        print("  You can download the Android 7 SDK by installing Android Studio from https://developer.android.com/studio, and selecting the Android 7 SDK component during installation.")
+
+    java_home = os.environ.get("JAVA_HOME")
+    java_home_ok = java_home is not None and Path(java_home).is_dir()
+    # Print JAVA_HOME status
+    mark_java = "✓" if java_home_ok else "✗"
+    if java_home_ok:
+        print(f"  {mark_java} JAVA_HOME is set to: {java_home}")
+    else:
+        if java_home:
+            print(f"  {mark_java} JAVA_HOME is set, but the path '{java_home}' does not exist or is not a directory.")
+        else:
+            print(f"  {mark_java} JAVA_HOME is not set.")
+        print("\n  Please set JAVA_HOME to your JDK 17 installation folder.")
+        print("  You can download JDK 17 from https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html")
+
     input("\nPress Enter to continue...")
 
 def first_time_setup():
     """Install all required Android targets."""
     print("Starting first-time setup for Android targets...")
     statuses = get_android_target_installation_statuses()
-    missing = [t for t, ok in statuses if not ok]
+    missing = [target for (target, _), ok in statuses if not ok]
 
     if not missing:
         print("\nAll required Android targets are already installed.")
@@ -132,7 +163,32 @@ def first_time_setup():
             print("\n✅ Successfully installed missing targets.")
         except subprocess.CalledProcessError:
             print("\n❌ Failed to install targets. Please check the output above.")
+
+    android_home = os.environ.get("ANDROID_HOME")
+    android_home_ok = android_home is not None and Path(android_home).is_dir()
+    if not android_home_ok:
+        print("\n  Please install the Android 7 SDK and set the ANDROID_HOME environment variable to point to your Android SDK location.")
+        print("  You can download the Android 7 SDK by installing Android Studio from https://developer.android.com/studio, and selecting the Android 7 SDK component during installation.")
+        print("  Please re-run this script after setting ANDROID_HOME.")
+        return
     
+    print("\nChecking Java environment variables...")
+    java_home = os.environ.get("JAVA_HOME")
+    java_home_ok = java_home is not None and Path(java_home).is_dir()
+    
+    mark_java = "✓" if java_home_ok else "✗"
+    if java_home_ok:
+        print(f"  {mark_java} JAVA_HOME is set to: {java_home}")
+    else:
+        if java_home:
+            print(f"  {mark_java} JAVA_HOME is set, but the path '{java_home}' does not exist or is not a directory.")
+        else:
+            print(f"  {mark_java} JAVA_HOME is not set.")
+        print("\n  Please set JAVA_HOME to your JDK 17 installation folder.")
+        print("  You can download JDK 17 from https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html")
+        print("  After setting JAVA_HOME, please re-run this script to validate your environment.")
+        return
+
     # Show final status
     validate_environment()
 
@@ -166,8 +222,8 @@ def build_mathoku_core(profile: str):
         input("\nPress Enter to continue...")
         return
 
-    for target in ANDROID_TARGETS_OF_INTEREST:
-        cmd = base_cmd + ["-t", target, "-o", f"../kotlin-rust-wrapper/src/main/jniLibs/{target}"] + build_cmd_suffix
+    for (target, jni_target) in ANDROID_TARGETS_OF_INTEREST:
+        cmd = base_cmd + ["-t", target, "-o", f"../mathoku-kotlin-rust-wrapper/src/main/jniLibs"] + build_cmd_suffix
         try:
             # The 'run' helper doesn't support 'cwd', so we use subprocess directly
             print(">>", " ".join(map(str, cmd)), f"(in {core_path})", flush=True)

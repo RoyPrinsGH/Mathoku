@@ -6,5 +6,7 @@ edition = "2024"
 [lib]
 # cdylib enables .so output for the Kotlin wrapper
 crate-type = ["cdylib"]
+name = "mathoku"
 
 [dependencies]
+jni = "0.21.1"

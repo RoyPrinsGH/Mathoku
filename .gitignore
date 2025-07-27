@@ -1,2 +1,5 @@
 .mathoku-dev-console-venv
 .gradle
+build
+local.properties
+.idea
