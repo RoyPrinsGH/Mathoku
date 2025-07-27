@@ -9,6 +9,7 @@ def run_mathoku_dev_console(args):
     main_menu = MenuBuilder() \
             .add_call("Environment Setup", lambda: run_single_select_menu(environment_setup_menu)) \
             .add_call("Build", lambda: run_multi_select_menu(build_menu)) \
+            .add_call("Run Mathoku Android App", run_application) \
             .add_exit("Exit") \
             .build()
     
@@ -217,6 +218,27 @@ def build_kotlin_wrapper(profile: str):
         return
     
     print("\n✅ Successfully built Kotlin wrapper.")
+    input("\nPress Enter to continue...")
+
+def run_application():
+    """Runs the Mathoku android app."""
+    print("Running Mathoku android app...")
+    react_native_app_path = PROJECT_ROOT / "mathoku_ui"
+    if not react_native_app_path.is_dir():
+        print(f"\n❌ Error: mathoku_ui directory not found at {react_native_app_path}")
+        input("\nPress Enter to continue...")
+        return
+    
+    run_cmd = ["npm", "run", "android"]
+    try:
+        print(">>", " ".join(map(str, run_cmd)), f"(in {react_native_app_path})", flush=True)
+        subprocess.check_call(run_cmd, cwd=react_native_app_path, shell=True)
+    except subprocess.CalledProcessError:
+        print("\n❌ Failed to run Mathoku android app. Please check the output above.")
+        input("\nPress Enter to continue...")
+        return
+    
+    print("\n✅ Successfully started Mathoku android app.")
     input("\nPress Enter to continue...")
 
 ## ------ Environment Components ------
