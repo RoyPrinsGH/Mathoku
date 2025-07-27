@@ -2,10 +2,29 @@
 from __future__ import annotations
 import os, sys, subprocess
 from pathlib import Path
-from unittest import case
 from pick import pick
-from typing import cast, List, Tuple, Callable, Union
-from enum import Enum
+from typing import cast, List, Tuple, Callable
+
+def run_mathoku_dev_console(args):
+    main_menu = MenuBuilder() \
+            .add_call("Environment Setup", lambda: run_single_select_menu(environment_setup_menu)) \
+            .add_call("Build", lambda: run_multi_select_menu(build_menu)) \
+            .add_exit("Exit") \
+            .build()
+    
+    build_menu = MenuBuilder() \
+            .add_call("mathoku-core -- debug", lambda: build_mathoku_core(profile="debug")) \
+            .add_call("mathoku-core -- release", lambda: build_mathoku_core(profile="release")) \
+            .add_exit("Back") \
+            .build()
+    
+    environment_setup_menu = MenuBuilder() \
+            .add_call("Validate environment", validate_environment) \
+            .add_call("Set up environment", set_up_environment) \
+            .add_exit("Back") \
+            .build()
+    
+    run_single_select_menu(main_menu)
 
 VENV_DIR_NAME = ".mathoku-dev-console-venv"
 REQ_FILE = "requirements.txt"
@@ -56,7 +75,7 @@ def parse_args(argv):
 def main():
     if os.environ.get("SKIP_VENV_BOOTSTRAP") == "1":
         print("Skipping venv bootstrap due to SKIP_VENV_BOOTSTRAP=1.")
-        return real_main([])
+        return run_mathoku_dev_console([])
 
     sync, no_spawn, passthrough = parse_args(sys.argv[1:])
 
@@ -77,122 +96,58 @@ def main():
         # Spawn child instead of exec
         sys.exit(subprocess.call([str(python), str(SCRIPT_PATH)] + passthrough))
 
-    return real_main(passthrough)
+    return run_mathoku_dev_console(passthrough)
 
-ANDROID_TARGETS_OF_INTEREST: Tuple[Tuple[str, str], ...] = (
-    ("aarch64-linux-android", "arm64-v8a"),
-    ("armv7-linux-androideabi", "armeabi-v7a"),
-    ("x86_64-linux-android", "x86_64"),
-)
-
-def get_android_target_installation_statuses():
-    """
-    Return list of (target_triple, installed_bool) for all targets of interest.
-    Never raises due to rustup issues; prints a concise message instead.
-    """
-    try:
-        out = subprocess.check_output(
-            ["rustup", "target", "list", "--installed"],
-            text=True
-        )
-        installed_targets = {line.strip() for line in out.splitlines() if line.strip()}
-    except Exception as e:
-        # Graceful fallback: report all as missing
-        print(f"[warn] Could not query rustup targets ({e}); treating all as missing.")
-        installed_targets = set()
-
-    return [((target, jni_target), target in installed_targets) for (target, jni_target) in ANDROID_TARGETS_OF_INTEREST]
+ANDROID_TARGETS: List[str] = [
+    "arm64-v8a", "armeabi-v7a", "x86_64"
+]
 
 def validate_environment():
-    statuses = get_android_target_installation_statuses()
-    all_ok = all(installed for _, installed in statuses)
+    """Validates the environment setup for MMathoku development."""
+
+    components = get_environment_components()
+
+    all_ok = True
+
+    for component in components:
+        if not component.validate_set_up():
+            all_ok = False
     if all_ok:
         print("\n✅ Environment validation succeeded.")
     else:
         print("\n❌ Environment validation failed.")
-    print("Android targets:")
-    for (triple, _), ok in statuses:
-        mark = "✓" if ok else "✗"
-        print(f"  {mark} {triple}")
-    if not all_ok:
-        missing = [target for (target, _), ok in statuses if not ok]
-        print("\nInstall missing with:\n  rustup target add " + " ".join(missing))
-
-    android_home = os.environ.get("ANDROID_HOME")
-    android_home_ok = android_home is not None and Path(android_home).is_dir()
-
-    # Print ANDROID_HOME status
-    print("Environment variables:")
-    mark_android = "✓" if android_home_ok else "✗"
-    if android_home_ok:
-        print(f"  {mark_android} ANDROID_HOME is set to: {android_home}")
-    else:
-        if android_home:
-            print(f"  {mark_android} ANDROID_HOME is set, but the path '{android_home}' does not exist or is not a directory.")
-        else:
-            print(f"  {mark_android} ANDROID_HOME is not set.")
-        print("\n  Please install the Android 7 SDK and set the ANDROID_HOME environment variable to point to your Android SDK location.")
-        print("  You can download the Android 7 SDK by installing Android Studio from https://developer.android.com/studio, and selecting the Android 7 SDK component during installation.")
-
-    java_home = os.environ.get("JAVA_HOME")
-    java_home_ok = java_home is not None and Path(java_home).is_dir()
-    # Print JAVA_HOME status
-    mark_java = "✓" if java_home_ok else "✗"
-    if java_home_ok:
-        print(f"  {mark_java} JAVA_HOME is set to: {java_home}")
-    else:
-        if java_home:
-            print(f"  {mark_java} JAVA_HOME is set, but the path '{java_home}' does not exist or is not a directory.")
-        else:
-            print(f"  {mark_java} JAVA_HOME is not set.")
-        print("\n  Please set JAVA_HOME to your JDK 17 installation folder.")
-        print("  You can download JDK 17 from https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html")
 
     input("\nPress Enter to continue...")
 
-def first_time_setup():
-    """Install all required Android targets."""
-    print("Starting first-time setup for Android targets...")
-    statuses = get_android_target_installation_statuses()
-    missing = [target for (target, _), ok in statuses if not ok]
+def set_up_environment():
+    """Performs the first-time setup for the development environment."""
+    components = get_environment_components()
 
-    if not missing:
-        print("\nAll required Android targets are already installed.")
-    else:
-        print(f"\nInstalling missing targets: {', '.join(missing)}")
-        try:
-            run(["rustup", "target", "add"] + missing)
-            print("\n✅ Successfully installed missing targets.")
-        except subprocess.CalledProcessError:
-            print("\n❌ Failed to install targets. Please check the output above.")
+    all_ok = True
 
-    android_home = os.environ.get("ANDROID_HOME")
-    android_home_ok = android_home is not None and Path(android_home).is_dir()
-    if not android_home_ok:
-        print("\n  Please install the Android 7 SDK and set the ANDROID_HOME environment variable to point to your Android SDK location.")
-        print("  You can download the Android 7 SDK by installing Android Studio from https://developer.android.com/studio, and selecting the Android 7 SDK component during installation.")
-        print("  Please re-run this script after setting ANDROID_HOME.")
+    for component in components:
+        if not component.validate_pre_set_up():
+            print(f"\n❌ {component.__class__.__name__} is not set up correctly. Please fix the issues above.")
+            all_ok = False
+    if not all_ok:
+        input("\nPress Enter to continue...")
         return
     
-    print("\nChecking Java environment variables...")
-    java_home = os.environ.get("JAVA_HOME")
-    java_home_ok = java_home is not None and Path(java_home).is_dir()
-    
-    mark_java = "✓" if java_home_ok else "✗"
-    if java_home_ok:
-        print(f"  {mark_java} JAVA_HOME is set to: {java_home}")
-    else:
-        if java_home:
-            print(f"  {mark_java} JAVA_HOME is set, but the path '{java_home}' does not exist or is not a directory.")
-        else:
-            print(f"  {mark_java} JAVA_HOME is not set.")
-        print("\n  Please set JAVA_HOME to your JDK 17 installation folder.")
-        print("  You can download JDK 17 from https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html")
-        print("  After setting JAVA_HOME, please re-run this script to validate your environment.")
-        return
+    print("\nAll components are valid. Proceeding with setup...")
 
-    # Show final status
-    validate_environment()
+    for component in components:
+        if component.validate_set_up():
+            print(f"\n✅ {component.__class__.__name__} is already set up correctly.")
+            continue
+        if not component.set_up():
+            print(f"\n❌ Failed to set up {component.__class__.__name__}. Please fix the issues above.")
+            all_ok = False
+    if all_ok:
+        print("\n✅ Environment setup completed successfully.")
+    else:
+        print("\n❌ Environment setup failed. Please fix the issues above.")
+
+    input("\nPress Enter to continue...")
 
 def build_mathoku_core(profile: str):
     """Builds the mathoku-core crate for all Android targets."""
@@ -208,7 +163,7 @@ def build_mathoku_core(profile: str):
         input("\nPress Enter to continue...")
         return
 
-    for (target, jni_target) in ANDROID_TARGETS_OF_INTEREST:
+    for (target, jni_target) in ANDROID_TARGETS:
         cmd = base_cmd + ["-t", target, "-o", f"../mathoku-kotlin-rust-wrapper/src/main/jniLibs"] + build_cmd_suffix
         try:
             # The 'run' helper doesn't support 'cwd', so we use subprocess directly
@@ -222,55 +177,123 @@ def build_mathoku_core(profile: str):
     print(f"\n✅ Successfully built mathoku-core for all targets (profile: {profile}).")
     input("\nPress Enter to continue...")
 
-def execute_steps(steps: List[Callable[[], bool]]) -> bool:
-    """
-    Executes a list of steps, each represented by a callable.
-    If any step returns False, the process is aborted.
-    """
-    for step in steps:
-        step_success = step()
+## ------ Environment Components ------
 
-        if not step_success:
-            print("Process aborted due to a step failure.")
+def get_environment_components() -> List[EnvComponent]:
+    """
+    Returns a list of environment components that need to be validated and set up.
+    """
+    return [
+        RustupAndroidTargetsComponent(),
+        AndroidSdkComponent(),
+        JavaEnvironmentComponent()
+    ]
+
+class EnvComponent:
+    def validate_pre_set_up(self) -> bool:
+        raise NotImplementedError("Subclasses should implement this method.")
+    
+    def set_up(self) -> bool:
+        raise NotImplementedError("Subclasses should implement this method.")
+    
+    def validate_set_up(self) -> bool:
+        raise NotImplementedError("Subclasses should implement this method.")
+
+class RustupAndroidTargetsComponent(EnvComponent):
+    def validate_pre_set_up(self) -> bool:
+        try:
+            subprocess.check_output(["rustup", "--version"], text=True)
+            return True
+        except subprocess.CalledProcessError:
+            print("Rustup is not installed or not found in PATH.")
+            return False
+
+    def set_up(self) -> bool:
+        print("Setting up Rustup Android targets...")
+        try:
+            run(["rustup", "target", "add"] + ANDROID_TARGETS)
+            print("Rustup Android targets set up successfully.")
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to set up Rustup Android targets: {e}", file=sys.stderr)
             return False
         
-    return True
-class NamedExecutablePlan:
-    """Represents a named sequence of executable steps."""
-    def __init__(self, name: str, steps: List[Callable[[], bool]]):
-        """
-        Initializes the NamedExecutablePlan.
+    def validate_set_up(self) -> bool:
+        try:
+            rustup_output = subprocess.check_output(["rustup", "target", "list", "--installed"], text=True)
+            installed_targets = [line.split()[0] for line in rustup_output.strip().splitlines()]
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to list Rustup targets: {e}", file=sys.stderr)
+            return False
 
-        Args:
-            name: The name of the plan.
-            steps: A list of callables representing the steps of the plan.
-        """
-        self.name = name
-        self.steps = steps
+        success = True
 
-    def execute(self) -> bool:
-        """
-        Executes the plan's steps sequentially.
+        for target in ANDROID_TARGETS:
+            if target not in installed_targets:
+                print(f"Target {target} is not installed.")
+                success = False
 
-        Returns:
-            True if all steps executed successfully, False otherwise.
-        """
-        print(f"Executing plan: {self.name}")
-        return execute_steps(self.steps)
+        return success
 
-class NamedExecutablePlanBuilder:
-    """A builder for creating NamedExecutablePlan objects."""
+class AndroidSdkComponent(EnvComponent):
+    def validate_pre_set_up(self) -> bool:
+        return True
 
-    def __init__(self, name: str):
-        self.name = name
-        self.steps: List[Callable[[], bool]] = []
+    def set_up(self) -> bool:
+        return True
+    
+    def validate_set_up(self) -> bool:
+        android_home = os.environ.get("ANDROID_HOME")
+        if android_home is None:
+            print("ANDROID_HOME is not set.")
+            return False
+        
+        android_home_path = Path(android_home)
+        if not android_home_path.is_dir():
+            print(f"ANDROID_HOME path '{android_home}' does not exist or is not a directory.")
+            return False
+        
+        # Check for Android 7 SDK
+        sdk_version = "24"
+        platform_path = android_home_path / "platforms" / f"android-{sdk_version}"
 
-    def add_step(self, step: Callable[[], bool]) -> NamedExecutablePlanBuilder:
-        self.steps.append(step)
-        return self
+        if not platform_path.is_dir():
+            print(f"Android SDK platform path '{platform_path}' does not exist or is not a directory.")
+            return False
 
-    def build(self) -> NamedExecutablePlan:
-        return NamedExecutablePlan(self.name, self.steps)
+        return True
+    
+class JavaEnvironmentComponent(EnvComponent):
+    def validate_pre_set_up(self) -> bool:
+        return True
+
+    def set_up(self) -> bool:
+        return True
+    
+    def validate_set_up(self) -> bool:
+        java_home = os.environ.get("JAVA_HOME")
+        if java_home is None:
+            print("JAVA_HOME is not set.")
+            return False
+        
+        java_home_path = Path(java_home)
+        if not java_home_path.is_dir():
+            print(f"JAVA_HOME path '{java_home}' does not exist or is not a directory.")
+            return False
+        
+        # Check for JDK 17
+        jdk_version_file = java_home_path / "release"
+        if not jdk_version_file.exists():
+            print(f"JDK version file '{jdk_version_file}' does not exist.")
+            return False
+        
+        with open(jdk_version_file, "r") as f:
+            content = f.read()
+            if "JAVA_VERSION=\"17" not in content:
+                print("JAVA_HOME does not point to JDK 17.")
+                return False
+        
+        return True
 
 class FunctionCall:
     """Represents a menu action."""
@@ -291,8 +314,8 @@ class Menu:
     def __init__(self, items: List[MenuItem]):
         self.items = items
 
-    def get_options(self) -> List[str]:
-        return [name for name, _ in self.items]
+    def get_options(self, show_exit_options: bool = True) -> List[str]:
+        return [name for name, action in self.items if isinstance(action, FunctionCall) or (show_exit_options and isinstance(action, Exit))]
 
     def get_action(self, name: str) -> FunctionCall | Exit:
         for item_name, item in self.items:
@@ -325,7 +348,7 @@ def run_single_select_menu(menu_data: Menu):
     """
     while True:
         title = "Select an option:"
-        options = menu_data.get_options()
+        options = menu_data.get_options(show_exit_options=True)
         choice, _ = pick(options, title, indicator=">>")
 
         # pick's typing is not great, so we coerce to str
@@ -354,7 +377,7 @@ def run_multi_select_menu(menu_data: Menu):
     """
     while True:
         title = "Select one or more options (use space to select, enter to confirm, confirm empty selection to go back):"
-        options = menu_data.get_options()
+        options = menu_data.get_options(show_exit_options=False)
         choices = pick(options, title, indicator=">>", multiselect=True)
 
         # pick's typing is not great, so we coerce to a tuple of str + indexes
@@ -377,27 +400,6 @@ def run_multi_select_menu(menu_data: Menu):
                 
             except ValueError as e:
                 print(f"Error: {e}", file=sys.stderr)
-
-def real_main(args):
-    main_menu = MenuBuilder() \
-            .add_call("Environment Setup", lambda: run_single_select_menu(environment_setup_menu)) \
-            .add_call("Build", lambda: run_multi_select_menu(build_menu)) \
-            .add_exit("Exit") \
-            .build()
-    
-    build_menu = MenuBuilder() \
-            .add_call("mathoku-core -- debug", lambda: build_mathoku_core(profile="debug")) \
-            .add_call("mathoku-core -- release", lambda: build_mathoku_core(profile="release")) \
-            .add_exit("Back") \
-            .build()
-    
-    environment_setup_menu = MenuBuilder() \
-            .add_call("First-time setup (install Android targets)", first_time_setup) \
-            .add_call("Validate environment", validate_environment) \
-            .add_exit("Back") \
-            .build()
-    
-    run_single_select_menu(main_menu)
 
 if __name__ == "__main__":
     try:
