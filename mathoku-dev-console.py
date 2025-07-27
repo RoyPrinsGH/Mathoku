@@ -15,6 +15,8 @@ def run_mathoku_dev_console(args):
     build_menu = MenuBuilder() \
             .add_call("mathoku-core -- debug", lambda: build_mathoku_core(profile="debug")) \
             .add_call("mathoku-core -- release", lambda: build_mathoku_core(profile="release")) \
+            .add_call("mathoku-kotlin-rust-wrapper -- debug", lambda: build_kotlin_wrapper(profile="debug")) \
+            .add_call("mathoku-kotlin-rust-wrapper -- release", lambda: build_kotlin_wrapper(profile="release")) \
             .add_exit("Back") \
             .build()
     
@@ -183,6 +185,40 @@ def build_mathoku_core(profile: str):
     print(f"\n✅ Successfully built mathoku-core for all targets (profile: {profile}).")
     input("\nPress Enter to continue...")
 
+def build_kotlin_wrapper(profile: str):
+    """Builds the Kotlin wrapper for the mathoku-core crate."""
+    print("Building Kotlin wrapper...")
+    wrapper_path = PROJECT_ROOT / "mathoku-kotlin-rust-wrapper"
+    if not wrapper_path.is_dir():
+        print(f"\n❌ Error: mathoku-kotlin-rust-wrapper directory not found at {wrapper_path}")
+        input("\nPress Enter to continue...")
+        return
+
+    if IS_WINDOWS:
+        cmd_base = ["gradlew.bat"]
+    else:
+        cmd_base = ["./gradlew"]
+
+    if profile == "release":
+        cmd_base.append(":assembleRelease")
+    elif profile == "debug":
+        cmd_base.append(":assembleDebug")
+    else:
+        print(f"\n❌ Error: Invalid profile '{profile}'. Use 'debug' or 'release'.")
+        input("\nPress Enter to continue...")
+        return
+
+    try:
+        print(">>", " ".join(map(str, cmd_base)), f"(in {wrapper_path})", flush=True)
+        subprocess.check_call(cmd_base, cwd=wrapper_path, shell=True)
+    except subprocess.CalledProcessError:
+        print("\n❌ Failed to build Kotlin wrapper. Please check the output above.")
+        input("\nPress Enter to continue...")
+        return
+    
+    print("\n✅ Successfully built Kotlin wrapper.")
+    input("\nPress Enter to continue...")
+
 ## ------ Environment Components ------
 
 def get_environment_components() -> List[EnvComponent]:
@@ -300,6 +336,8 @@ class JavaEnvironmentComponent(EnvComponent):
                 return False
         
         return True
+
+## ------ Menu System ------
 
 class FunctionCall:
     """Represents a menu action."""
