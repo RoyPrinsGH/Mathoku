@@ -7,8 +7,18 @@ export default function App() {
 
   const onPress = async () => {
     try {
-      const result = await MathokuNative.greet('React User');
-      setMessage(result);
+      const numCalls = 1000;
+      const startTime = performance.now();
+      for (let i = 0; i < numCalls; i++) {
+        await MathokuNative.greet('React User');
+      }
+      const endTime = performance.now();
+      const duration = endTime - startTime;
+      const averageTime = duration / numCalls;
+      setMessage(
+        `Made ${numCalls} calls in ${duration.toFixed(3)} ms.\n` +
+        `Average time per call: ${averageTime.toFixed(3)} ms.`
+      );
     } catch (err: any) {
       console.error(err);
       setMessage('Error: ' + (err.message || JSON.stringify(err)));
