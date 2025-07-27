@@ -2,8 +2,10 @@
 from __future__ import annotations
 import os, sys, subprocess
 from pathlib import Path
+from unittest import case
 from pick import pick
-from typing import List, Tuple
+from typing import cast, List, Tuple, Callable, Union
+from enum import Enum
 
 VENV_DIR_NAME = ".mathoku-dev-console-venv"
 REQ_FILE = "requirements.txt"
@@ -192,22 +194,6 @@ def first_time_setup():
     # Show final status
     validate_environment()
 
-def submenu_environment_setup():
-    while True:
-        title = "Environment Setup – choose an action:"
-        options = [
-            "First-time setup (install Android targets)",
-            "Validate environment",
-            "Back"
-        ]
-        choice, _ = pick(options, title, indicator=">>")
-        if choice == "Back":
-            return
-        if choice == "First-time setup (install Android targets)":
-            first_time_setup()
-        elif choice == "Validate environment":
-            validate_environment()
-
 def build_mathoku_core(profile: str):
     """Builds the mathoku-core crate for all Android targets."""
     print(f"Building mathoku-core (profile: {profile})...")
@@ -236,37 +222,182 @@ def build_mathoku_core(profile: str):
     print(f"\n✅ Successfully built mathoku-core for all targets (profile: {profile}).")
     input("\nPress Enter to continue...")
 
-def submenu_build():
+def execute_steps(steps: List[Callable[[], bool]]) -> bool:
+    """
+    Executes a list of steps, each represented by a callable.
+    If any step returns False, the process is aborted.
+    """
+    for step in steps:
+        step_success = step()
+
+        if not step_success:
+            print("Process aborted due to a step failure.")
+            return False
+        
+    return True
+class NamedExecutablePlan:
+    """Represents a named sequence of executable steps."""
+    def __init__(self, name: str, steps: List[Callable[[], bool]]):
+        """
+        Initializes the NamedExecutablePlan.
+
+        Args:
+            name: The name of the plan.
+            steps: A list of callables representing the steps of the plan.
+        """
+        self.name = name
+        self.steps = steps
+
+    def execute(self) -> bool:
+        """
+        Executes the plan's steps sequentially.
+
+        Returns:
+            True if all steps executed successfully, False otherwise.
+        """
+        print(f"Executing plan: {self.name}")
+        return execute_steps(self.steps)
+
+class NamedExecutablePlanBuilder:
+    """A builder for creating NamedExecutablePlan objects."""
+
+    def __init__(self, name: str):
+        self.name = name
+        self.steps: List[Callable[[], bool]] = []
+
+    def add_step(self, step: Callable[[], bool]) -> NamedExecutablePlanBuilder:
+        self.steps.append(step)
+        return self
+
+    def build(self) -> NamedExecutablePlan:
+        return NamedExecutablePlan(self.name, self.steps)
+
+class FunctionCall:
+    """Represents a menu action."""
+    def __init__(self, func: Callable[[], None]):
+        self.func = func
+
+    def __call__(self):
+        self.func()
+
+class Exit:
+    """Represents an exit action."""
+
+type MenuItem = Tuple[str, FunctionCall | Exit]
+
+class Menu:
+    """A data storage class to manage menu options and their associated actions."""
+
+    def __init__(self, items: List[MenuItem]):
+        self.items = items
+
+    def get_options(self) -> List[str]:
+        return [name for name, _ in self.items]
+
+    def get_action(self, name: str) -> FunctionCall | Exit:
+        for item_name, item in self.items:
+            if item_name == name:
+                return item
+            
+        raise ValueError(f"Action '{name}' not found in menu data.")
+    
+class MenuBuilder:
+    def __init__(self):
+        self.items: List[MenuItem] = []
+
+    def add_call(self, name: str, action: Callable[[], None]) -> MenuBuilder:
+        self.items.append((name, FunctionCall(action)))
+        return self
+    
+    def add_exit(self, name: str) -> MenuBuilder:
+        self.items.append((name, Exit()))
+        return self
+
+    def build(self) -> Menu:
+        return Menu(self.items)
+
+def run_single_select_menu(menu_data: Menu):
+    """
+    Displays a menu and executes the selected action.
+
+    Args:
+        menu_data: An instance of MenuData containing the menu options and actions.
+    """
     while True:
-        title = "Build – choose a target:"
-        options = [
-            "mathoku-core -- debug",
-            "mathoku-core -- release",
-            "Back"
-        ]
+        title = "Select an option:"
+        options = menu_data.get_options()
         choice, _ = pick(options, title, indicator=">>")
-        if choice == "Back":
+
+        # pick's typing is not great, so we coerce to str
+        choice = cast(str, choice)
+
+        try:
+            # Can throw ValueError if choice not found
+            action = menu_data.get_action(choice)
+            
+            if isinstance(action, FunctionCall):
+                action()
+            elif isinstance(action, Exit):
+                return
+            else:
+                raise ValueError(f"Unexpected action type for choice '{choice}': {type(action)}")
+            
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+
+def run_multi_select_menu(menu_data: Menu):
+    """
+    Displays a multi-select menu and executes the selected action(s).
+
+    Args:
+        menu_data: An instance of MenuData containing the menu options and actions.
+    """
+    while True:
+        title = "Select one or more options (use space to select, enter to confirm, confirm empty selection to go back):"
+        options = menu_data.get_options()
+        choices = pick(options, title, indicator=">>", multiselect=True)
+
+        # pick's typing is not great, so we coerce to a tuple of str + indexes
+        choices = cast(List[Tuple[str, int]], choices)
+
+        if len(choices) == 0:
             return
-        elif choice == "mathoku-core -- debug":
-            build_mathoku_core(profile="debug")
-        elif choice == "mathoku-core -- release":
-            build_mathoku_core(profile="release")
+
+        for choice, _ in choices:
+            try:
+                # Can throw ValueError if choice not found
+                action = menu_data.get_action(choice)
+                
+                if isinstance(action, FunctionCall):
+                    action()
+                elif isinstance(action, Exit):
+                    raise ValueError("Exit action selected, but multi-select does not support exit options.")
+                else:
+                    raise ValueError(f"Unexpected action type for choice '{choice}': {type(action)}")
+                
+            except ValueError as e:
+                print(f"Error: {e}", file=sys.stderr)
 
 def real_main(args):
-    while True:
-        title = "Main Menu – select an option:"
-        options = [
-            "Environment Setup",
-            "Build",
-            "Exit"
-        ]
-        choice, _ = pick(options, title, indicator=">>")
-        if choice == "Exit":
-            break
-        if choice == "Environment Setup":
-            submenu_environment_setup()
-        elif choice == "Build":
-            submenu_build()
+    main_menu = MenuBuilder() \
+            .add_call("Environment Setup", lambda: run_single_select_menu(environment_setup_menu)) \
+            .add_call("Build", lambda: run_multi_select_menu(build_menu)) \
+            .add_exit("Exit") \
+            .build()
+    
+    build_menu = MenuBuilder() \
+            .add_call("mathoku-core -- debug", lambda: build_mathoku_core(profile="debug")) \
+            .add_call("mathoku-core -- release", lambda: build_mathoku_core(profile="release")) \
+            .add_exit("Back") \
+            .build()
+    
+    environment_setup_menu = MenuBuilder() \
+            .add_call("First-time setup (install Android targets)", first_time_setup) \
+            .add_call("Validate environment", validate_environment) \
+            .add_exit("Back") \
+            .build()
+    
+    run_single_select_menu(main_menu)
 
 if __name__ == "__main__":
     try:
