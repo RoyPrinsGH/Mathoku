@@ -169,7 +169,7 @@ def build_mathoku_core(profile: str):
         input("\nPress Enter to continue...")
         return
 
-    for (target, jni_target) in ANDROID_TARGETS:
+    for target in ANDROID_TARGETS:
         cmd = base_cmd + ["-t", target, "-o", f"../mathoku-kotlin-rust-wrapper/src/main/jniLibs"] + build_cmd_suffix
         try:
             # The 'run' helper doesn't support 'cwd', so we use subprocess directly
