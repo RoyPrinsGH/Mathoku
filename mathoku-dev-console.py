@@ -392,7 +392,7 @@ class Exit:
     """Represents an exit action."""
 
 
-type MenuItem = Tuple[str, FunctionCall | Exit]
+MenuItem = Tuple[str, FunctionCall | Exit]
 
 
 class Menu:
