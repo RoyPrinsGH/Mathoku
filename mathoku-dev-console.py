@@ -124,21 +124,16 @@ ANDROID_TARGETS: List[str] = [
 ]
 
 
-def validate_environment():
-    """Validates the environment setup for MMathoku development."""
+def validate_environment() -> None:
+    """Validates the environment setup for Mathoku development."""
 
-    components = get_environment_components()
+    # I use a list inside 'all' (instead of leaving a naked generator) to make sure all
+    # 'validate_set_up()' are run (since 'all' is lazy).
+    text = "\n✅ Environment validation succeeded." if \
+        all([component.validate_set_up() for component in get_environment_components()]) else \
+        "\n❌ Environment validation failed."
 
-    all_ok = True
-
-    for component in components:
-        if not component.validate_set_up():
-            all_ok = False
-    if all_ok:
-        print("\n✅ Environment validation succeeded.")
-    else:
-        print("\n❌ Environment validation failed.")
-
+    print(text)
     input("\nPress Enter to continue...")
 
 
