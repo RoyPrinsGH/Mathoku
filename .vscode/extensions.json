@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "rust-lang.rust-analyzer",
+        "usernamehw.errorlens",
+        "vscjava.vscode-gradle",
+        "redhat.java",
+        "fwcd.kotlin",
+        "bradlc.vscode-tailwindcss"
+    ]
+}
