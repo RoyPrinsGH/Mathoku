@@ -8,7 +8,7 @@ from pick import pick
 from typing import cast, List, Tuple, Callable
 
 
-def run_mathoku_dev_console(args):
+def run_mathoku_dev_console():
     main_menu = MenuBuilder() \
         .add_call("Environment Setup", lambda: run_single_select_menu(environment_setup_menu)) \
         .add_call("Build", lambda: run_multi_select_menu(build_menu)) \
@@ -48,11 +48,7 @@ def run(cmd, *, check=True):
 
 
 def main():
-    if os.environ.get("SKIP_VENV_BOOTSTRAP") == "1":
-        print("Skipping venv bootstrap due to SKIP_VENV_BOOTSTRAP=1.")
-        return run_mathoku_dev_console([])
-
-    return run_mathoku_dev_console(sys.argv[1:])
+    return run_mathoku_dev_console()
 
 
 ANDROID_RUSTUP_TARGETS: List[str] = [
