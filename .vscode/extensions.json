@@ -1,9 +1,13 @@
 {
-  "recommendations": [
-    "ms-python.python",
-    "ms-python.vscode-pylance",
-    "ms-python.flake8",
-  ],
-  "unwantedRecommendations": [
-  ]
+    "recommendations": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.flake8",
+        "rust-lang.rust-analyzer",
+        "usernamehw.errorlens",
+        "vscjava.vscode-gradle",
+        "redhat.java",
+        "fwcd.kotlin",
+        "bradlc.vscode-tailwindcss"
+    ]
 }

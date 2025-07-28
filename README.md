@@ -1,7 +1,10 @@
-If you wanna develop just run the mathoku dev console
-I personally tend to set a PATH variable to whatever project I'm currently working on so I can just type 'dev' from any terminal and open the dev console for that project
-That's why there is a dev.bat
+# Set up Java
 
-Sadly the gradle bullshit has to be checked in or else we get another installation step, namely installing gradle and then running the gradle wrapper builder script
+Download JRE 17, and point JAVA_HOME to the folder that contains bin, lib, etc.
 
-And oh yeah it's called mathoku_ui instead of mathoku-ui because react native init refused to accept it as an acceptable name
+# Setup Android
+
+Install Android SDK from https://developer.android.com/studio
+Install the SDK for android 7, command line tools, build tools, platform tools, and emulator support. Then in android studio you can manage your devices.
+Running the React-native project will start up an emulator for you, so you don't need to have android studio open.
+ANDROID_HOME should point towards your sdk folder, where it has the cmdline-tools, platform-tools, and platforms folders.
