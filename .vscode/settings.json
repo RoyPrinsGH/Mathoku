@@ -2,7 +2,6 @@
     "java.configuration.updateBuildConfiguration": "interactive",
     "java.compile.nullAnalysis.mode": "automatic",
 
-    // Python
     "python.analysis.languageServerMode": "full",
     "flake8.args": ["--ignore=E501"]
 }
