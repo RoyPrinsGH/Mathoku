@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    // Python
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.flake8",
+  ],
+  "unwantedRecommendations": [
+  ]
+}
