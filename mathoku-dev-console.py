@@ -33,12 +33,8 @@ def run_mathoku_dev_console(args):
     run_single_select_menu(main_menu)
 
 
-VENV_DIR_NAME = ".mathoku-dev-console-venv"
-REQ_FILE = "requirements.txt"
-
 SCRIPT_PATH = Path(__file__).resolve()
 PROJECT_ROOT = SCRIPT_PATH.parent
-VENV_PATH = PROJECT_ROOT / VENV_DIR_NAME
 IS_WINDOWS = os.name == "nt"
 
 
@@ -46,44 +42,9 @@ def venv_python_path(venv_dir: Path) -> Path:
     return venv_dir / ("Scripts/python.exe" if IS_WINDOWS else "bin/python")
 
 
-def in_our_venv() -> bool:
-    return Path(sys.prefix).resolve() == VENV_PATH.resolve()
-
-
 def run(cmd, *, check=True):
     print(">>", " ".join(map(str, cmd)), flush=True)
     return subprocess.check_call(cmd) if check else subprocess.call(cmd)
-
-
-def create_venv():
-    print(f"Creating virtual environment at {VENV_PATH} ...")
-    run([sys.executable, "-m", "venv", str(VENV_PATH)])
-    print("Virtual environment created.")
-
-
-def install_requirements(python: Path):
-    req_path = PROJECT_ROOT / REQ_FILE
-    if not req_path.exists():
-        print(f"Warning: {REQ_FILE} not found; skipping dependency install.", file=sys.stderr)
-        return
-    print(f"Installing dependencies from {REQ_FILE} ...")
-    run([str(python), "-m", "pip", "install", "--upgrade", "pip", "setuptools", "wheel"])
-    run([str(python), "-m", "pip", "install", "-r", str(req_path)])
-    print("Dependencies installed.")
-
-
-def parse_args(argv):
-    sync = False
-    no_spawn = False
-    rest = []
-    for a in argv:
-        if a == "--sync":
-            sync = True
-        elif a == "--no-spawn":
-            no_spawn = True   # replaces --no-reexec
-        else:
-            rest.append(a)
-    return sync, no_spawn, rest
 
 
 def main():
@@ -91,26 +52,7 @@ def main():
         print("Skipping venv bootstrap due to SKIP_VENV_BOOTSTRAP=1.")
         return run_mathoku_dev_console([])
 
-    sync, no_spawn, passthrough = parse_args(sys.argv[1:])
-
-    # Ensure venv present / updated
-    if not VENV_PATH.exists():
-        create_venv()
-        install_requirements(venv_python_path(VENV_PATH))
-    elif sync:
-        install_requirements(venv_python_path(VENV_PATH))
-
-    if not in_our_venv() and not no_spawn:
-        python = venv_python_path(VENV_PATH)
-        if not python.exists():
-            print(f"Error: expected venv python at {python} not found. Recreating.", file=sys.stderr)
-            create_venv()
-            install_requirements(venv_python_path(VENV_PATH))
-            python = venv_python_path(VENV_PATH)
-        # Spawn child instead of exec
-        sys.exit(subprocess.call([str(python), str(SCRIPT_PATH)] + passthrough))
-
-    return run_mathoku_dev_console(passthrough)
+    return run_mathoku_dev_console(sys.argv[1:])
 
 
 ANDROID_RUSTUP_TARGETS: List[str] = [
