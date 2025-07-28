@@ -4,4 +4,5 @@
 
     // Python
     "python.analysis.languageServerMode": "full",
+    "flake8.args": ["--ignore=E501"]
 }
