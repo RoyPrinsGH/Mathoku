@@ -1,6 +1,6 @@
 # Set up Java
 
-Download JRE 17, and point JAVA_HOME to the folder that contains bin, lib, etc.
+Download JDK 17 from [oracle](https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html) or [redhat](https://developers.redhat.com/products/openjdk/download?sc_cid=701f2000000RWTnAAO), and point JAVA_HOME to the folder that contains bin, lib, etc.
 
 # Setup Android
 
