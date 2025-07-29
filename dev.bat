@@ -17,11 +17,12 @@ call "%VENV_DIR%\Scripts\activate.bat"
 REM Install dependencies
 if exist requirements.txt (
     echo Installing requirements...
-    pip install -r requirements.txt
+    pip install -r requirements.txt | findstr /V "Requirement already satisfied"
 ) else (
     echo No requirements.txt found.
 )
 
+echo Starting mathoku-dev-console...
 python mathoku-dev-console.py
 
 endlocal
