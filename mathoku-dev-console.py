@@ -178,6 +178,15 @@ def run_application():
         input("\nPress Enter to continue...")
         return
 
+    run_cmd = ["npm", "install"]
+    try:
+        print(">>", " ".join(map(str, run_cmd)), f"(in {react_native_app_path})", flush=True)
+        subprocess.check_call(run_cmd, cwd=react_native_app_path, shell=True)
+    except subprocess.CalledProcessError:
+        print("\n❌ Failed to install Mathoku android app. Please check the output above.")
+        input("\nPress Enter to continue...")
+        return
+
     run_cmd = ["npm", "run", "android"]
     try:
         print(">>", " ".join(map(str, run_cmd)), f"(in {react_native_app_path})", flush=True)
