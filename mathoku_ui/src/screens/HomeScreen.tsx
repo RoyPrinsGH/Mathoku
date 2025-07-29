@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import MathokuNative from '../native/MathokuNative';
+import { User } from '../types/backend';
 
 // Minimal course type definition
 interface Course {
@@ -19,6 +21,26 @@ interface HomeScreenProps {
 }
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
+  const [user, setUser] = React.useState<User | undefined>(undefined);
+
+  console.log('HomeScreen rendered');
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      console.log('Fetching dummy user JSON from native module...');
+      
+      const json = await MathokuNative.getDummyUserJson();
+
+      console.log('Dummy User JSON:', json);
+
+      const user: User = JSON.parse(json);
+
+      setUser(user);
+    };
+
+    fetchData();
+  }, []);
+
   const renderItem = ({ item }: { item: Course }) => (
     <TouchableOpacity
       style={styles.item}
@@ -30,6 +52,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   return (
     <View style={styles.container}>
+      <Text>Welcome to Mathoku!</Text>
+      {user && (
+        <Text>
+          Dummy User: {user.name} ({user.email})
+        </Text>
+      )}
       <FlatList
         data={courses}
         keyExtractor={(item) => item.id}

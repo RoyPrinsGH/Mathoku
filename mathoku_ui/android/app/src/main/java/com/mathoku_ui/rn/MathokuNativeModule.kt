@@ -1,10 +1,10 @@
 package com.mathoku.ui.rn
 
 import com.facebook.react.bridge.*
-import com.mathoku.core.MathokuCore  // from your wrapper
+import com.mathoku.core.MathokuCore // from your wrapper
 
 class MathokuNativeModule(private val reactContext: ReactApplicationContext) :
-    ReactContextBaseJavaModule(reactContext) {
+        ReactContextBaseJavaModule(reactContext) {
 
     override fun getName(): String = "MathokuNative"
 
@@ -15,6 +15,16 @@ class MathokuNativeModule(private val reactContext: ReactApplicationContext) :
             promise.resolve(result)
         } catch (e: Throwable) {
             promise.reject("GREETING_ERROR", e)
+        }
+    }
+
+    @ReactMethod
+    fun getDummyUserJson(promise: Promise) {
+        try {
+            val result = MathokuCore.getDummyUserJson()
+            promise.resolve(result)
+        } catch (e: Throwable) {
+            promise.reject("DUMMY_USER_ERROR", e)
         }
     }
 }

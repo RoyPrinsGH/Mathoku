@@ -2,9 +2,9 @@ import { NativeModules } from 'react-native';
 
 type MathokuNativeType = {
   greet(name: string): Promise<string>;
+  getDummyUserJson(): Promise<string>;
 };
 
-// grab our native module by the name you returned in getName()
 const { MathokuNative } = NativeModules;
 
 if (!MathokuNative) {
