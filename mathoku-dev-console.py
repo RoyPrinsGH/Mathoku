@@ -265,7 +265,7 @@ class TypeshareComponent(EnvComponent):
     def set_up(self) -> bool:
         print("Setting up Typeshare...")
         try:
-            run(["cargo", "install", "typeshare"])
+            run(["cargo", "install", "typeshare-cli"])
             print("Typeshare set up successfully.")
             return True
         except subprocess.CalledProcessError as e:
