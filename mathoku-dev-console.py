@@ -73,16 +73,11 @@ def set_up_environment():
     components = get_environment_components()
 
     all_ok = True
-
-    for component in components:
-        if not component.validate_pre_set_up():
-            print(f"\n❌ {component.__class__.__name__} is not set up correctly. Please fix the issues above.")
-            all_ok = False
-    if not all_ok:
+    pre_validations = [component.validate_pre_set_up() for component in components]
+    print(success_or_failure_text_builder("Pre-setup validation", all(pre_validations)))
+    if not all(pre_validations):
         input("\nPress Enter to continue...")
         return
-
-    print("\nAll components are valid. Proceeding with setup...")
 
     for component in components:
         if component.validate_set_up():
@@ -220,12 +215,18 @@ class EnvComponent:
 
 class RustupAndroidTargetsComponent(EnvComponent):
     def validate_pre_set_up(self) -> bool:
+        task = "Rustup pre-setup validation"
+        print(f"Performing {task}...")
+        success = False
         try:
             subprocess.check_output(["rustup", "--version"], text=True)
-            return True
+            success = True
         except subprocess.CalledProcessError:
-            print("Rustup is not installed or not found in PATH.")
-            return False
+            print("\n❌ Rustup is not installed or not found in PATH.")
+            success = False
+        finally:
+            success_or_failure_text_builder(task, success)
+            return success
 
     def set_up(self) -> bool:
         print("Setting up Rustup Android targets...")
