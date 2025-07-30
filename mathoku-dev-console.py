@@ -4,7 +4,7 @@ import os
 import sys
 import subprocess
 from pathlib import Path
-from typing import List
+from typing import Callable, List
 from consolemenu import ConsoleMenu
 from consolemenu.items import FunctionItem, SubmenuItem
 
@@ -36,7 +36,7 @@ def venv_python_path(venv_dir: Path) -> Path:
     return venv_dir / ("Scripts/python.exe" if IS_WINDOWS else "bin/python")
 
 
-def run(cmd, *, check=True):
+def run(cmd, *, check=True) -> int:
     print(">>", " ".join(map(str, cmd)), flush=True)
     return subprocess.check_call(cmd) if check else subprocess.call(cmd)
 
@@ -60,15 +60,24 @@ def success_or_failure_text_builder(task: str, success: bool) -> str:
     return f"\n✅ {task} succeeded." if success else f"\n❌ {task} failed."
 
 
+def await_enter(func: Callable[..., None], *args, **kwargs) -> Callable[[], None]:
+    def inner() -> None:
+        func(*args, **kwargs)
+        input("\nPress Enter to continue...")
+        return
+    return inner
+
+
+@await_enter
 def validate_environment() -> None:
     """Validates the environment setup for Mathoku development."""
 
     validations = [component.validate_set_up() for component in get_environment_components()]
     print(success_or_failure_text_builder("Environment validation", all(validations)))
-    input("\nPress Enter to continue...")
 
 
-def set_up_environment():
+@await_enter
+def set_up_environment() -> None:
     """Performs the first-time setup for the development environment."""
     components = get_environment_components()
 
@@ -76,7 +85,6 @@ def set_up_environment():
     pre_validations = [component.validate_pre_set_up() for component in components]
     print(success_or_failure_text_builder("Pre-setup validation", all(pre_validations)))
     if not all(pre_validations):
-        input("\nPress Enter to continue...")
         return
 
     for component in components:
@@ -91,10 +99,11 @@ def set_up_environment():
     else:
         print("\n❌ Environment setup failed. Please fix the issues above.")
 
-    input("\nPress Enter to continue...")
+    return
 
 
-def build_mathoku_core(profile: str):
+@await_enter
+def build_mathoku_core(profile: str) -> None:
     """Builds the mathoku-core crate for all Android targets."""
     print(f"Building mathoku-core (profile: {profile})...")
     base_cmd = ["cargo", "ndk"]
@@ -105,7 +114,6 @@ def build_mathoku_core(profile: str):
     core_path = PROJECT_ROOT / "mathoku-core"
     if not core_path.is_dir():
         print(f"\n❌ Error: mathoku-core directory not found at {core_path}")
-        input("\nPress Enter to continue...")
         return
 
     for target in ANDROID_TARGETS:
@@ -116,20 +124,19 @@ def build_mathoku_core(profile: str):
             subprocess.check_call(cmd, cwd=core_path)
         except subprocess.CalledProcessError:
             print(f"\n❌ Failed to build for target {target}. Please check the output above.")
-            input("\nPress Enter to continue...")
             return
 
     print(f"\n✅ Successfully built mathoku-core for all targets (profile: {profile}).")
-    input("\nPress Enter to continue...")
+    return
 
 
-def build_kotlin_wrapper(profile: str):
+@await_enter
+def build_kotlin_wrapper(profile: str) -> None:
     """Builds the Kotlin wrapper for the mathoku-core crate."""
     print("Building Kotlin wrapper...")
     wrapper_path = PROJECT_ROOT / "mathoku-kotlin-rust-wrapper"
     if not wrapper_path.is_dir():
         print(f"\n❌ Error: mathoku-kotlin-rust-wrapper directory not found at {wrapper_path}")
-        input("\nPress Enter to continue...")
         return
 
     if IS_WINDOWS:
@@ -143,7 +150,6 @@ def build_kotlin_wrapper(profile: str):
         cmd_base.append(":assembleDebug")
     else:
         print(f"\n❌ Error: Invalid profile '{profile}'. Use 'debug' or 'release'.")
-        input("\nPress Enter to continue...")
         return
 
     try:
@@ -151,20 +157,19 @@ def build_kotlin_wrapper(profile: str):
         subprocess.check_call(cmd_base, cwd=wrapper_path, shell=True)
     except subprocess.CalledProcessError:
         print("\n❌ Failed to build Kotlin wrapper. Please check the output above.")
-        input("\nPress Enter to continue...")
         return
 
     print("\n✅ Successfully built Kotlin wrapper.")
-    input("\nPress Enter to continue...")
+    return
 
 
-def run_application():
+@await_enter
+def run_application() -> None:
     """Runs the Mathoku android app."""
     print("Running Mathoku android app...")
     react_native_app_path = PROJECT_ROOT / "mathoku_ui"
     if not react_native_app_path.is_dir():
         print(f"\n❌ Error: mathoku_ui directory not found at {react_native_app_path}")
-        input("\nPress Enter to continue...")
         return
 
     run_cmd = ["npm", "install"]
@@ -173,7 +178,6 @@ def run_application():
         subprocess.check_call(run_cmd, cwd=react_native_app_path, shell=True)
     except subprocess.CalledProcessError:
         print("\n❌ Failed to install Mathoku android app. Please check the output above.")
-        input("\nPress Enter to continue...")
         return
 
     run_cmd = ["npm", "run", "android"]
@@ -182,11 +186,9 @@ def run_application():
         subprocess.check_call(run_cmd, cwd=react_native_app_path, shell=True)
     except subprocess.CalledProcessError:
         print("\n❌ Failed to run Mathoku android app. Please check the output above.")
-        input("\nPress Enter to continue...")
         return
 
     print("\n✅ Successfully started Mathoku android app.")
-    input("\nPress Enter to continue...")
 
 
 # ------ Environment Components ------
