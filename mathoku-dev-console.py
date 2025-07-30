@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+import abc
 import os
 import sys
 import subprocess
@@ -197,50 +198,68 @@ def get_environment_components() -> List[EnvComponent]:
     ]
 
 
+def success_or_failure(task_type):
+    def decorator(func: Callable[..., bool]):
+        def inner(self, *args, **kwargs) -> bool:
+            task = f"{self.display_name} {task_type}"
+            print(f"Performing {task}...")
+            success = func(self, *args, **kwargs)
+            print(success_or_failure_text_builder(task, success))
+            return success
+        return inner
+    return decorator
+
+
 class EnvComponent:
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self, display_name="EnvComponent"):
+        self.display_name = display_name
+
+    def __init_subclass__(cls):
+        function_name_map = {
+            "validate_pre_set_up": "pre-setup validation",
+            "set_up": "setup",
+            "validate_set_up": "setup validation",
+        }
+        for fname, task_type in function_name_map.items():
+            method = getattr(cls, fname, None)
+            assert isinstance(method, Callable)
+            setattr(cls, fname, success_or_failure(task_type)(method))
+
+    @abc.abstractmethod
     def validate_pre_set_up(self) -> bool:
         raise NotImplementedError("Subclasses should implement this method.")
 
+    @abc.abstractmethod
     def set_up(self) -> bool:
         raise NotImplementedError("Subclasses should implement this method.")
 
+    @abc.abstractmethod
     def validate_set_up(self) -> bool:
         raise NotImplementedError("Subclasses should implement this method.")
 
 
 class RustupAndroidTargetsComponent(EnvComponent):
-    display_name = "Rustup Android targets"
+    def __init__(self):
+        super().__init__("Rustup Android targets")
 
     def validate_pre_set_up(self) -> bool:
-        task = f"{self.display_name} pre-setup validation"
-        print(f"Performing {task}...")
-        success = False
         try:
             subprocess.check_output(["rustup", "--version"], text=True)
-            success = True
+            return True
         except subprocess.CalledProcessError:
             print("\n❌ Rustup is not installed or not found in PATH.")
-            success = False
-        finally:
-            print(success_or_failure_text_builder(task, success))
-            return success
+            return False
 
     def set_up(self) -> bool:
-        task = f"{self.display_name} setup"
-        print(f"Performing {task}...")
-        success = False
         try:
             run(["rustup", "target", "add"] + ANDROID_RUSTUP_TARGETS)
-            success = True
+            return True
         except subprocess.CalledProcessError:
-            success = False
-        finally:
-            print(success_or_failure_text_builder(task, success))
-            return success
+            return False
 
     def validate_set_up(self) -> bool:
-        task = f"{self.display_name} setup validation"
-        print(f"Performing {task}...")
         installed_targets = []
         success = False
         try:
@@ -252,18 +271,19 @@ class RustupAndroidTargetsComponent(EnvComponent):
             success = False
         finally:
             if not success:
-                print(success_or_failure_text_builder(task, success))
                 return success
 
             for target in ANDROID_RUSTUP_TARGETS:
                 if target not in installed_targets:
                     print(f"\n❌ Target {target} is not installed.")
                     success = False
-            print(success_or_failure_text_builder(task, success))
             return success
 
 
 class AndroidSdkComponent(EnvComponent):
+    def __init__(self):
+        super().__init__("Android sdk")
+
     def validate_pre_set_up(self) -> bool:
         return True
 
@@ -293,6 +313,9 @@ class AndroidSdkComponent(EnvComponent):
 
 
 class JavaEnvironmentComponent(EnvComponent):
+    def __init__(self):
+        super().__init__("Java environment")
+
     def validate_pre_set_up(self) -> bool:
         return True
 
