@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, Button } from 'react-native';
 import MathokuNative from '../native/MathokuNative';
 import { User } from '../types/backend';
 
@@ -41,6 +41,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     fetchData();
   }, []);
 
+  const showAlert = () => {
+    Alert.alert('This is a dummy alert!');
+  };
+
   const renderItem = ({ item }: { item: Course }) => (
     <TouchableOpacity
       style={styles.item}
@@ -63,6 +67,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
       />
+      <Button title="Show Alert" onPress={showAlert} />
     </View>
   );
 }
