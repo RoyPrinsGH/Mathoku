@@ -27,6 +27,10 @@ fn parse_typeshare_config() -> TypeshareConfig {
             .expect(&format!(
                 "{key} not specified in {TYPESHARE_TOML_FILE_NAME} under [{BUILD_CONFIG_SECTION}] section"
             ))
+            .as_str()
+            .expect(&format!(
+                "{key} in {TYPESHARE_TOML_FILE_NAME} under [{BUILD_CONFIG_SECTION}] section must be a string"
+            ))
             .to_string()
     };
 
