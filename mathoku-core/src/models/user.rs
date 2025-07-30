@@ -1,4 +1,7 @@
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 
 // Just a simple user model for demonstration purposes
 #[typeshare::typeshare]
