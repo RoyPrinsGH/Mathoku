@@ -56,15 +56,15 @@ ANDROID_TARGETS: List[str] = [
 ]
 
 
+def success_or_failure_text_builder(task: str, success: bool) -> str:
+    return f"\n✅ {task} succeeded." if success else f"\n❌ {task} failed."
+
+
 def validate_environment() -> None:
     """Validates the environment setup for Mathoku development."""
 
     validations = [component.validate_set_up() for component in get_environment_components()]
-    text = "\n✅ Environment validation succeeded." \
-        if all(validations) \
-        else "\n❌ Environment validation failed."
-
-    print(text)
+    print(success_or_failure_text_builder("Environment validation", all(validations)))
     input("\nPress Enter to continue...")
 
 
