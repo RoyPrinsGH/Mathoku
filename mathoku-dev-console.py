@@ -222,7 +222,7 @@ class RustupAndroidTargetsComponent(EnvComponent):
             print("\n❌ Rustup is not installed or not found in PATH.")
             success = False
         finally:
-            success_or_failure_text_builder(task, success)
+            print(success_or_failure_text_builder(task, success))
             return success
 
     def set_up(self) -> bool:
@@ -235,7 +235,7 @@ class RustupAndroidTargetsComponent(EnvComponent):
         except subprocess.CalledProcessError:
             success = False
         finally:
-            success_or_failure_text_builder(task, success)
+            print(success_or_failure_text_builder(task, success))
             return success
 
     def validate_set_up(self) -> bool:
@@ -251,15 +251,16 @@ class RustupAndroidTargetsComponent(EnvComponent):
             print(f"\n❌ Failed to list Rustup targets: {e}", file=sys.stderr)
             success = False
         finally:
-            success_or_failure_text_builder(task, success)
             if not success:
+                print(success_or_failure_text_builder(task, success))
                 return success
 
             for target in ANDROID_RUSTUP_TARGETS:
                 if target not in installed_targets:
                     print(f"\n❌ Target {target} is not installed.")
                     success = False
-        return success
+            print(success_or_failure_text_builder(task, success))
+            return success
 
 
 class AndroidSdkComponent(EnvComponent):
