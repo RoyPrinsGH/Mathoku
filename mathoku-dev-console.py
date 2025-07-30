@@ -4,8 +4,7 @@ import os
 import sys
 import subprocess
 from pathlib import Path
-from pick import pick
-from typing import cast, List, Tuple, Callable
+from typing import List
 from consolemenu import ConsoleMenu
 from consolemenu.items import FunctionItem, SubmenuItem
 
@@ -316,121 +315,6 @@ class JavaEnvironmentComponent(EnvComponent):
                 return False
 
         return True
-
-
-# ------ Menu System ------
-
-class FunctionCall:
-    """Represents a menu action."""
-    def __init__(self, func: Callable[[], None]):
-        self.func = func
-
-    def __call__(self):
-        self.func()
-
-
-class Exit:
-    """Represents an exit action."""
-
-
-MenuItemType = Tuple[str, FunctionCall | Exit]
-
-
-class Menu:
-    """A data storage class to manage menu options and their associated actions."""
-
-    def __init__(self, items: List[MenuItemType]):
-        self.items = items
-
-    def get_options(self, show_exit_options: bool = True) -> List[str]:
-        return [name for name, action in self.items if isinstance(action, FunctionCall) or (show_exit_options and isinstance(action, Exit))]
-
-    def get_action(self, name: str) -> FunctionCall | Exit:
-        for item_name, item in self.items:
-            if item_name == name:
-                return item
-
-        raise ValueError(f"Action '{name}' not found in menu data.")
-
-
-class MenuBuilder:
-    def __init__(self):
-        self.items: List[MenuItemType] = []
-
-    def add_call(self, name: str, action: Callable[[], None]) -> MenuBuilder:
-        self.items.append((name, FunctionCall(action)))
-        return self
-
-    def add_exit(self, name: str) -> MenuBuilder:
-        self.items.append((name, Exit()))
-        return self
-
-    def build(self) -> Menu:
-        return Menu(self.items)
-
-
-def run_single_select_menu(menu_data: Menu):
-    """
-    Displays a menu and executes the selected action.
-
-    Args:
-        menu_data: An instance of MenuData containing the menu options and actions.
-    """
-    while True:
-        title = "Select an option:"
-        options = menu_data.get_options(show_exit_options=True)
-        choice, _ = pick(options, title, indicator=">>")
-
-        # pick's typing is not great, so we coerce to str
-        choice = cast(str, choice)
-
-        try:
-            # Can throw ValueError if choice not found
-            action = menu_data.get_action(choice)
-
-            if isinstance(action, FunctionCall):
-                action()
-            elif isinstance(action, Exit):
-                return
-            else:
-                raise ValueError(f"Unexpected action type for choice '{choice}': {type(action)}")
-
-        except ValueError as e:
-            print(f"Error: {e}", file=sys.stderr)
-
-
-def run_multi_select_menu(menu_data: Menu):
-    """
-    Displays a multi-select menu and executes the selected action(s).
-
-    Args:
-        menu_data: An instance of MenuData containing the menu options and actions.
-    """
-    while True:
-        title = "Select one or more options (use space to select, enter to confirm, confirm empty selection to go back):"
-        options = menu_data.get_options(show_exit_options=False)
-        choices = pick(options, title, indicator=">>", multiselect=True)
-
-        # pick's typing is not great, so we coerce to a tuple of str + indexes
-        choices = cast(List[Tuple[str, int]], choices)
-
-        if len(choices) == 0:
-            return
-
-        for choice, _ in choices:
-            try:
-                # Can throw ValueError if choice not found
-                action = menu_data.get_action(choice)
-
-                if isinstance(action, FunctionCall):
-                    action()
-                elif isinstance(action, Exit):
-                    raise ValueError("Exit action selected, but multi-select does not support exit options.")
-                else:
-                    raise ValueError(f"Unexpected action type for choice '{choice}': {type(action)}")
-
-            except ValueError as e:
-                print(f"Error: {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":
