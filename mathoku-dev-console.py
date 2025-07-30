@@ -209,8 +209,10 @@ class EnvComponent:
 
 
 class RustupAndroidTargetsComponent(EnvComponent):
+    display_name = "Rustup Android targets"
+
     def validate_pre_set_up(self) -> bool:
-        task = "Rustup Android targets pre-setup validation"
+        task = f"{self.display_name} pre-setup validation"
         print(f"Performing {task}...")
         success = False
         try:
@@ -224,7 +226,7 @@ class RustupAndroidTargetsComponent(EnvComponent):
             return success
 
     def set_up(self) -> bool:
-        task = "Rustup Android targets setup"
+        task = f"{self.display_name} setup"
         print(f"Performing {task}...")
         success = False
         try:
@@ -237,20 +239,26 @@ class RustupAndroidTargetsComponent(EnvComponent):
             return success
 
     def validate_set_up(self) -> bool:
+        task = f"{self.display_name} setup validation"
+        print(f"Performing {task}...")
+        installed_targets = []
+        success = False
         try:
             rustup_output = subprocess.check_output(["rustup", "target", "list", "--installed"], text=True)
             installed_targets = [line.split()[0] for line in rustup_output.strip().splitlines()]
+            success = True
         except subprocess.CalledProcessError as e:
-            print(f"Failed to list Rustup targets: {e}", file=sys.stderr)
-            return False
+            print(f"\n❌ Failed to list Rustup targets: {e}", file=sys.stderr)
+            success = False
+        finally:
+            success_or_failure_text_builder(task, success)
+            if not success:
+                return success
 
-        success = True
-
-        for target in ANDROID_RUSTUP_TARGETS:
-            if target not in installed_targets:
-                print(f"Target {target} is not installed.")
-                success = False
-
+            for target in ANDROID_RUSTUP_TARGETS:
+                if target not in installed_targets:
+                    print(f"\n❌ Target {target} is not installed.")
+                    success = False
         return success
 
 
