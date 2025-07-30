@@ -81,25 +81,18 @@ def set_up_environment() -> None:
     """Performs the first-time setup for the development environment."""
     components = get_environment_components()
 
-    all_ok = True
     pre_validations = [component.validate_pre_set_up() for component in components]
     print(success_or_failure_text_builder("Pre-setup validation", all(pre_validations)))
     if not all(pre_validations):
         return
 
-    for component in components:
-        if component.validate_set_up():
-            print(f"\n✅ {component.__class__.__name__} is already set up correctly.")
-            continue
-        if not component.set_up():
-            print(f"\n❌ Failed to set up {component.__class__.__name__}. Please fix the issues above.")
-            all_ok = False
-    if all_ok:
-        print("\n✅ Environment setup completed successfully.")
-    else:
-        print("\n❌ Environment setup failed. Please fix the issues above.")
+    setup_validations = [component.validate_set_up() for component in components]
+    print(success_or_failure_text_builder("Setup-validation", all(setup_validations)))
+    if all(setup_validations):
+        return
 
-    return
+    setup_all_invalid = [component.set_up() for i, component in enumerate(components) if not setup_validations[i]]
+    print(success_or_failure_text_builder("Environment setup", all(setup_all_invalid)))
 
 
 @await_enter
@@ -217,7 +210,7 @@ class EnvComponent:
 
 class RustupAndroidTargetsComponent(EnvComponent):
     def validate_pre_set_up(self) -> bool:
-        task = "Rustup pre-setup validation"
+        task = "Rustup Android targets pre-setup validation"
         print(f"Performing {task}...")
         success = False
         try:
@@ -231,14 +224,17 @@ class RustupAndroidTargetsComponent(EnvComponent):
             return success
 
     def set_up(self) -> bool:
-        print("Setting up Rustup Android targets...")
+        task = "Rustup Android targets setup"
+        print(f"Performing {task}...")
+        success = False
         try:
             run(["rustup", "target", "add"] + ANDROID_RUSTUP_TARGETS)
-            print("Rustup Android targets set up successfully.")
-            return True
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to set up Rustup Android targets: {e}", file=sys.stderr)
-            return False
+            success = True
+        except subprocess.CalledProcessError:
+            success = False
+        finally:
+            success_or_failure_text_builder(task, success)
+            return success
 
     def validate_set_up(self) -> bool:
         try:
