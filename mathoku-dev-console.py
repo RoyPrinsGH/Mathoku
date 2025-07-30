@@ -6,31 +6,26 @@ import subprocess
 from pathlib import Path
 from pick import pick
 from typing import cast, List, Tuple, Callable
+from consolemenu import ConsoleMenu
+from consolemenu.items import FunctionItem, SubmenuItem
 
 
-def run_mathoku_dev_console():
-    main_menu = MenuBuilder() \
-        .add_call("Environment Setup", lambda: run_single_select_menu(environment_setup_menu)) \
-        .add_call("Build", lambda: run_multi_select_menu(build_menu)) \
-        .add_call("Run Mathoku Android App", run_application) \
-        .add_exit("Exit") \
-        .build()
+def run_mathoku_dev_console() -> None:
+    main_menu = ConsoleMenu("main menu")
 
-    build_menu = MenuBuilder() \
-        .add_call("mathoku-core -- debug", lambda: build_mathoku_core(profile="debug")) \
-        .add_call("mathoku-core -- release", lambda: build_mathoku_core(profile="release")) \
-        .add_call("mathoku-kotlin-rust-wrapper -- debug", lambda: build_kotlin_wrapper(profile="debug")) \
-        .add_call("mathoku-kotlin-rust-wrapper -- release", lambda: build_kotlin_wrapper(profile="release")) \
-        .add_exit("Back") \
-        .build()
+    build_menu = ConsoleMenu("build")
+    build_menu.append_item(FunctionItem("mathoku-core -- debug", function=build_mathoku_core, kwargs={"profile": "debug"}))
+    build_menu.append_item(FunctionItem("mathoku-core -- release", function=build_mathoku_core, kwargs={"profile": "release"}))
+    build_menu.append_item(FunctionItem("mathoku-kotlin-rust-wrapper -- debug", function=build_kotlin_wrapper, kwargs={"profile": "debug"}))
+    build_menu.append_item(FunctionItem("mathoku-kotlin-rust-wrapper -- release", function=build_kotlin_wrapper, kwargs={"profile": "release"}))
 
-    environment_setup_menu = MenuBuilder() \
-        .add_call("Validate environment", validate_environment) \
-        .add_call("Set up environment", set_up_environment) \
-        .add_exit("Back") \
-        .build()
+    environment_setup_menu = ConsoleMenu("environment")
+    environment_setup_menu.append_item(FunctionItem("Validate environment", validate_environment))
+    environment_setup_menu.append_item(FunctionItem("Set up environment", set_up_environment))
 
-    run_single_select_menu(main_menu)
+    main_menu.append_item(SubmenuItem("build", build_menu, main_menu))
+    main_menu.append_item(SubmenuItem("environment", environment_setup_menu, main_menu))
+    main_menu.show()
 
 
 SCRIPT_PATH = Path(__file__).resolve()
@@ -338,13 +333,13 @@ class Exit:
     """Represents an exit action."""
 
 
-MenuItem = Tuple[str, FunctionCall | Exit]
+MenuItemType = Tuple[str, FunctionCall | Exit]
 
 
 class Menu:
     """A data storage class to manage menu options and their associated actions."""
 
-    def __init__(self, items: List[MenuItem]):
+    def __init__(self, items: List[MenuItemType]):
         self.items = items
 
     def get_options(self, show_exit_options: bool = True) -> List[str]:
@@ -360,7 +355,7 @@ class Menu:
 
 class MenuBuilder:
     def __init__(self):
-        self.items: List[MenuItem] = []
+        self.items: List[MenuItemType] = []
 
     def add_call(self, name: str, action: Callable[[], None]) -> MenuBuilder:
         self.items.append((name, FunctionCall(action)))
