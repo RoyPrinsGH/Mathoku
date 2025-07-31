@@ -58,8 +58,8 @@ ANDROID_TARGETS: List[str] = [
 ]
 
 
-def success_or_failure_text_builder(task: str, success: bool) -> str:
-    return f"\n✅ {task} succeeded." if success else f"\n❌ {task} failed."
+def success_or_failure_text_builder(task: str, success: bool, prefix: str = "\n") -> str:
+    return f"{prefix}✅ {task} succeeded." if success else f"{prefix}❌ {task} failed."
 
 
 def await_enter(func: Callable[..., None], *args, **kwargs) -> Callable[[], None]:
@@ -203,9 +203,9 @@ def success_or_failure(task_type):
     def decorator(func: Callable[..., bool]):
         def inner(self, *args, **kwargs) -> bool:
             task = f"{self.display_name} {task_type}"
-            print(f"Performing {task}...")
+            print(f"\nPerforming {task}...")
             success = func(self, *args, **kwargs)
-            print(success_or_failure_text_builder(task, success))
+            print(success_or_failure_text_builder(task, success, prefix=""))
             return success
         return inner
     return decorator
