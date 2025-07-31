@@ -40,9 +40,9 @@ def venv_python_path(venv_dir: Path) -> Path:
     return venv_dir / ("Scripts/python.exe" if IS_WINDOWS else "bin/python")
 
 
-def run(cmd, *, check=True) -> int:
-    print(">>", " ".join(map(str, cmd)), flush=True)
-    return subprocess.check_call(cmd) if check else subprocess.call(cmd)
+def run_check_call(cmd, cwd=None) -> int:
+    print(">>", " ".join(map(str, cmd)), f"in ({cwd})" if cwd is not None else "", flush=True)
+    return subprocess.check_call(cmd, cwd=cwd)
 
 
 def main():
@@ -115,9 +115,8 @@ def build_mathoku_core(profile: str) -> None:
     for target in ANDROID_TARGETS:
         cmd = base_cmd + ["-t", target, "-o", "../mathoku-kotlin-rust-wrapper/src/main/jniLibs"] + build_cmd_suffix
         try:
-            # The 'run' helper doesn't support 'cwd', so we use subprocess directly
-            print(">>", " ".join(map(str, cmd)), f"(in {core_path})", flush=True)
-            subprocess.check_call(cmd, cwd=core_path)
+            run_check_call(cmd, cwd=core_path)
+
         except subprocess.CalledProcessError:
             print(f"\n❌ Failed to build for target {target}. Please check the output above.")
             return
@@ -145,8 +144,7 @@ def build_kotlin_wrapper(profile: str) -> None:
         return
 
     try:
-        print(">>", " ".join(map(str, cmd_base)), f"(in {wrapper_path})", flush=True)
-        subprocess.check_call(cmd_base, cwd=wrapper_path, shell=True)
+        run_check_call(cmd_base, cwd=wrapper_path)
     except subprocess.CalledProcessError:
         print("\n❌ Failed to build Kotlin wrapper. Please check the output above.")
         return
@@ -163,18 +161,14 @@ def run_application() -> None:
         print(f"\n❌ Error: mathoku_ui directory not found at {react_native_app_path}")
         return
 
-    run_cmd = ["npm", "install"]
     try:
-        print(">>", " ".join(map(str, run_cmd)), f"(in {react_native_app_path})", flush=True)
-        subprocess.check_call(run_cmd, cwd=react_native_app_path, shell=True)
+        run_check_call(["npm", "install"], cwd=react_native_app_path)
     except subprocess.CalledProcessError:
         print("\n❌ Failed to install Mathoku android app. Please check the output above.")
         return
 
-    run_cmd = ["npm", "run", "android"]
     try:
-        print(">>", " ".join(map(str, run_cmd)), f"(in {react_native_app_path})", flush=True)
-        subprocess.check_call(run_cmd, cwd=react_native_app_path, shell=True)
+        run_check_call(["npm", "run", "android"], cwd=react_native_app_path)
     except subprocess.CalledProcessError:
         print("\n❌ Failed to run Mathoku android app. Please check the output above.")
         return
@@ -250,7 +244,7 @@ class RustupAndroidTargetsComponent(EnvComponent):
 
     def set_up(self) -> bool:
         try:
-            run(["rustup", "target", "add"] + ANDROID_RUSTUP_TARGETS)
+            run_check_call(["rustup", "target", "add"] + ANDROID_RUSTUP_TARGETS)
             return True
         except subprocess.CalledProcessError:
             return False
@@ -285,7 +279,7 @@ class TypeshareComponent(EnvComponent):
     def set_up(self) -> bool:
         print("Setting up Typeshare...")
         try:
-            run(["cargo", "install", "typeshare-cli"])
+            run_check_call(["cargo", "install", "typeshare-cli"])
             print("Typeshare set up successfully.")
             return True
         except subprocess.CalledProcessError as e:
