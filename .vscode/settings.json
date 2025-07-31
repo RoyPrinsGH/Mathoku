@@ -2,6 +2,12 @@
     "java.configuration.updateBuildConfiguration": "interactive",
     "java.compile.nullAnalysis.mode": "automatic",
 
-    "python.analysis.languageServerMode": "full",
-    "flake8.args": ["--ignore=E501"]
+    "cSpell.words": [
+        "androideabi",
+        "armeabi",
+        "armv",
+        "gradlew",
+        "mathoku",
+        "rustup"
+    ]
 }
