@@ -65,11 +65,10 @@ def success_or_failure_text_builder(task: str, success: bool, prefix: str = "\n"
 
 
 def await_enter(func: Callable[..., None], *args, **kwargs) -> Callable[[], None]:
-    def inner(*args, **kwargs) -> None:
+    def wrapper(*args, **kwargs) -> None:
         func(*args, **kwargs)
         input("\nPress Enter to continue...")
-        return
-    return inner
+    return wrapper
 
 
 @await_enter
@@ -124,7 +123,6 @@ def build_mathoku_core(profile: str) -> None:
             return
 
     print(f"\n✅ Successfully built mathoku-core for all targets (profile: {profile}).")
-    return
 
 
 @await_enter
@@ -154,7 +152,6 @@ def build_kotlin_wrapper(profile: str) -> None:
         return
 
     print("\n✅ Successfully built Kotlin wrapper.")
-    return
 
 
 @await_enter
