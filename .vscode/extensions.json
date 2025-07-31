@@ -1,13 +1,17 @@
 {
     "recommendations": [
         "ms-python.python",
-        "ms-python.vscode-pylance",
-        "ms-python.flake8",
+        "charliermarsh.ruff",
         "rust-lang.rust-analyzer",
         "usernamehw.errorlens",
         "vscjava.vscode-gradle",
         "redhat.java",
         "fwcd.kotlin",
-        "bradlc.vscode-tailwindcss"
+        "bradlc.vscode-tailwindcss",
+        "streetsidesoftware.code-spell-checker",
+    ],
+    "unwantedRecommendations": [
+        "ms-python.vscode-pylance",
+        "ms-python.flake8",
     ]
 }
