@@ -215,15 +215,13 @@ class EnvComponent:
         self.display_name = display_name
 
     def __init_subclass__(cls):
-        function_name_map = {
-            "validate_pre_set_up": "pre-setup validation",
-            "set_up": "setup",
-            "validate_set_up": "setup validation",
+        method_name_map = {
+            cls.validate_pre_set_up: "pre-setup validation",
+            cls.set_up: "setup",
+            cls.validate_set_up: "setup validation",
         }
-        for fname, task_type in function_name_map.items():
-            method = getattr(cls, fname, None)
-            assert isinstance(method, Callable)
-            setattr(cls, fname, success_or_failure(task_type)(method))
+        for method, task_type in method_name_map.items():
+            setattr(cls, method.__name__, success_or_failure(task_type)(method))
 
     @abc.abstractmethod
     def validate_pre_set_up(self) -> bool:
