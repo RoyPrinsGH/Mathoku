@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+
 import abc
 import os
-import sys
 import subprocess
+import sys
 from pathlib import Path
-from typing import Callable, List
+from typing import Callable
+
 from consolemenu import ConsoleMenu
 from consolemenu.items import FunctionItem, SubmenuItem
 
@@ -47,13 +49,13 @@ def main():
     return run_mathoku_dev_console()
 
 
-ANDROID_RUSTUP_TARGETS: List[str] = [
+ANDROID_RUSTUP_TARGETS: list[str] = [
     "aarch64-linux-android",
     "armv7-linux-androideabi",
     "x86_64-linux-android",
 ]
 
-ANDROID_TARGETS: List[str] = [
+ANDROID_TARGETS: list[str] = [
     "arm64-v8a", "armeabi-v7a", "x86_64"
 ]
 
@@ -134,10 +136,7 @@ def build_kotlin_wrapper(profile: str) -> None:
         print(f"\n❌ Error: mathoku-kotlin-rust-wrapper directory not found at {wrapper_path}")
         return
 
-    if IS_WINDOWS:
-        cmd_base = ["gradlew.bat"]
-    else:
-        cmd_base = ["./gradlew"]
+    cmd_base = ["gradlew.bat"] if IS_WINDOWS else ["./gradlew"]
 
     if profile == "release":
         cmd_base.append(":assembleRelease")
@@ -188,7 +187,7 @@ def run_application() -> None:
 
 # ------ Environment Components ------
 
-def get_environment_components() -> List[EnvComponent]:
+def get_environment_components() -> list[EnvComponent]:
     """
     Returns a list of environment components that need to be validated and set up.
     """
@@ -270,16 +269,13 @@ class RustupAndroidTargetsComponent(EnvComponent):
             success = True
         except subprocess.CalledProcessError as e:
             print(f"\n❌ Failed to list Rustup targets: {e}", file=sys.stderr)
-            success = False
+            return False
         finally:
-            if not success:
-                return success
-
             for target in ANDROID_RUSTUP_TARGETS:
                 if target not in installed_targets:
                     print(f"\n❌ Target {target} is not installed.")
                     success = False
-            return success
+        return success
 
 
 class TypeshareComponent(EnvComponent):
@@ -371,7 +367,7 @@ class JavaEnvironmentComponent(EnvComponent):
             print(f"JDK version file '{jdk_version_file}' does not exist.")
             return False
 
-        with open(jdk_version_file, "r") as f:
+        with open(jdk_version_file) as f:
             content = f.read()
             if "JAVA_VERSION=\"17" not in content:
                 print("JAVA_HOME does not point to JDK 17.")
