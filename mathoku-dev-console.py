@@ -194,6 +194,7 @@ def get_environment_components() -> List[EnvComponent]:
     """
     return [
         RustupAndroidTargetsComponent(),
+        TypeshareComponent(),
         AndroidSdkComponent(),
         JavaEnvironmentComponent()
     ]
@@ -279,6 +280,36 @@ class RustupAndroidTargetsComponent(EnvComponent):
                     print(f"\n❌ Target {target} is not installed.")
                     success = False
             return success
+
+
+class TypeshareComponent(EnvComponent):
+    def validate_pre_set_up(self) -> bool:
+        try:
+            subprocess.check_output(["cargo", "-V"], text=True)
+            return True
+        except subprocess.CalledProcessError:
+            print("Cargo is not installed or not found in PATH.")
+            return False
+
+    def set_up(self) -> bool:
+        print("Setting up Typeshare...")
+        try:
+            run(["cargo", "install", "typeshare-cli"])
+            print("Typeshare set up successfully.")
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to set up Typeshare: {e}", file=sys.stderr)
+            return False
+
+    def validate_set_up(self) -> bool:
+        try:
+            cargo_output = subprocess.check_output(["cargo", "install", "--list"], text=True)
+            installed_components = [line.split()[0] for line in cargo_output.strip().splitlines()]
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to list Cargo components: {e}", file=sys.stderr)
+            return False
+
+        return "typeshare-cli" in installed_components
 
 
 class AndroidSdkComponent(EnvComponent):

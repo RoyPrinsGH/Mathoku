@@ -44,6 +44,7 @@ kotlin {
 dependencies {
     // optional; plugin would add it
     implementation(kotlin("stdlib"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 }
 
 publishing {
