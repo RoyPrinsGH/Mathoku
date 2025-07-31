@@ -63,7 +63,7 @@ def success_or_failure_text_builder(task: str, success: bool, prefix: str = "\n"
 
 
 def await_enter(func: Callable[..., None], *args, **kwargs) -> Callable[[], None]:
-    def inner() -> None:
+    def inner(*args, **kwargs) -> None:
         func(*args, **kwargs)
         input("\nPress Enter to continue...")
         return
