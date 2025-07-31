@@ -23,8 +23,9 @@ def run_mathoku_dev_console() -> None:
     environment_setup_menu.append_item(FunctionItem("Validate environment", validate_environment))
     environment_setup_menu.append_item(FunctionItem("Set up environment", set_up_environment))
 
-    main_menu.append_item(SubmenuItem("build", build_menu, main_menu))
-    main_menu.append_item(SubmenuItem("environment", environment_setup_menu, main_menu))
+    main_menu.append_item(SubmenuItem("Environment Setup", environment_setup_menu, main_menu))
+    main_menu.append_item(SubmenuItem("Build", build_menu, main_menu))
+    main_menu.append_item(FunctionItem("Run Mathoku Android App", function=run_application))
     main_menu.show()
 
 
