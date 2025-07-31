@@ -6,8 +6,10 @@
         "androideabi",
         "armeabi",
         "armv",
+        "consolemenu",
         "gradlew",
         "mathoku",
-        "rustup"
+        "rustup",
+        "typeshare"
     ]
 }
