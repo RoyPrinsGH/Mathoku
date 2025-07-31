@@ -1,0 +1,3 @@
+[build]
+output_folder = "../mathoku_ui/src/types"
+name = "backend"
