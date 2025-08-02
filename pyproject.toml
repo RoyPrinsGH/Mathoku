@@ -1,3 +1,6 @@
+[tool.ruff]
+line-length = 250
+
 [tool.ruff.lint]
 select = ["E", "F", "W", "C90", "B", "SIM", "I", "UP", "W"]
 ignore = ["E501"]

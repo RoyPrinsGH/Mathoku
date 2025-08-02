@@ -11,5 +11,9 @@
         "mathoku",
         "rustup",
         "typeshare"
-    ]
+    ],
+
+    "files.exclude": {
+     "**/.git": false
+    }
 }
