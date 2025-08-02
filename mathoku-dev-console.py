@@ -8,22 +8,22 @@ import sys
 from pathlib import Path
 from typing import Callable
 
-from consolemenu import ConsoleMenu
+from consolemenu import ConsoleMenu, MultiSelectMenu
 from consolemenu.items import FunctionItem, SubmenuItem
 
 
 def run_mathoku_dev_console() -> None:
     main_menu = ConsoleMenu("main menu")
 
-    build_menu = ConsoleMenu("build")
+    environment_setup_menu = ConsoleMenu("environment")
+    environment_setup_menu.append_item(FunctionItem("Validate environment", validate_environment))
+    environment_setup_menu.append_item(FunctionItem("Set up environment", set_up_environment))
+
+    build_menu = MultiSelectMenu("build")
     build_menu.append_item(FunctionItem("mathoku-core -- debug", function=build_mathoku_core, kwargs={"profile": "debug"}))
     build_menu.append_item(FunctionItem("mathoku-core -- release", function=build_mathoku_core, kwargs={"profile": "release"}))
     build_menu.append_item(FunctionItem("mathoku-kotlin-rust-wrapper -- debug", function=build_kotlin_wrapper, kwargs={"profile": "debug"}))
     build_menu.append_item(FunctionItem("mathoku-kotlin-rust-wrapper -- release", function=build_kotlin_wrapper, kwargs={"profile": "release"}))
-
-    environment_setup_menu = ConsoleMenu("environment")
-    environment_setup_menu.append_item(FunctionItem("Validate environment", validate_environment))
-    environment_setup_menu.append_item(FunctionItem("Set up environment", set_up_environment))
 
     main_menu.append_item(SubmenuItem("Environment Setup", environment_setup_menu, main_menu))
     main_menu.append_item(SubmenuItem("Build", build_menu, main_menu))
