@@ -6,8 +6,15 @@
         "androideabi",
         "armeabi",
         "armv",
+        "consolemenu",
+        "envcomponent",
         "gradlew",
         "mathoku",
-        "rustup"
-    ]
+        "rustup",
+        "typeshare"
+    ],
+
+    "files.exclude": {
+     "**/.git": false
+    }
 }
